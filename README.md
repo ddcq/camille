@@ -21,6 +21,8 @@ cargo run --release
 
 Contrôles : molette = zoom, clavier = orbite caméra, `demo` = mode démo sans webcam.
 
+> 🐧 **Linux ?** Suivre [docs/linux.md](docs/linux.md) : paquets système, webcam/micro, Piper, modèles, dépannage.
+
 ## Modèles (non versionnés, ~270 MB)
 
 Télécharger / placer manuellement :
