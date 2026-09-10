@@ -21,7 +21,7 @@ cargo run --release
 
 Contrôles : molette = zoom, clavier = orbite caméra, `demo` = mode démo sans webcam.
 
-> 🐧 **Linux ?** Suivre [docs/linux.md](docs/linux.md) : paquets système, webcam/micro, Piper, modèles, dépannage.
+> 🐧 **Fedora ostree ?** Suivre [docs/fedora-ostree.md](docs/fedora-ostree.md) : toolbox, webcam/micro, Piper, modèles, dépannage.
 
 ## Modèles (non versionnés, ~270 MB)
 
