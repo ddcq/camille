@@ -1,0 +1,15 @@
+[package]
+name = "proto-fyrox"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fyrox = "1.0"
+nokhwa = { version = "0.10", features = ["input-native"] }
+mediapipe = "0.1"
+anyhow = "1"
+rodio = { version = "0.22", features = ["playback"] }
+whisper-cpp-plus = "0.1"
+
+[profile.dev]
+opt-level = 1

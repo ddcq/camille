@@ -1,0 +1,20 @@
+# Rust: build artifacts
+/target/
+**/*.rs.bk
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Modèles lourds — à télécharger séparément (≈270MB)
+# Voir README section Modèles.
+/models/
+ggml-*.bin
+*.onnx
+*.tgz
+/kokoro/models/
+/kokoro/voices/
+models/piper/
