@@ -110,43 +110,44 @@ python3 -m piper --help   # doit afficher l'aide
 mkdir -p ~/projects && cd ~/projects
 git clone https://github.com/ddcq/camille.git
 cd camille
-mkdir -p models/piper kokoro/models kokoro/voices
+mkdir -p models/piper
 ```
 
-Les modèles lourds (~270 Mo) ne sont **pas** dans git (voir `.gitignore`) :
+Les modèles lourds (~140 Mo utiles) ne sont **pas** dans git (voir `.gitignore`) :
 
 | Fichier | Destination |
 |---|---|
 | `face_landmarker.task` (3,6 Mo, déjà dans git) | racine |
-| `ggml-tiny.bin` (whisper, ~75 Mo) | `models/` |
-| `ggml-silero-v6.2.0.bin` (VAD, optionnel) | `models/` |
-| `fr_FR-siwis-medium.onnx{,.json}` (Piper) | `models/piper/` |
-| `model_quantized.onnx` + `ff_siwis.bin` (Kokoro, optionnel) | `kokoro/` |
+| `ggml-tiny.bin` (whisper STT, ~77 Mo) — obligatoire pour les commandes vocales | `models/` |
+| `fr_FR-siwis-medium.onnx{,.json}` (voix Piper, ~63 Mo) — obligatoire pour la parole | `models/piper/` |
 
 ```bash
 # 1. FaceLandmarker — déjà dans git, sinon :
 wget -O face_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
 
-# 2. Whisper tiny (fr compris) :
+# 2. Whisper tiny (fr compris) — chargé par src/voice.rs :
 wget -O models/ggml-tiny.bin \
   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
 
-# 3. VAD Silero (optionnel) :
-wget -O models/ggml-silero-v6.2.0.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-silero-v6.2.0.bin
-
-# 4. Voix Piper fr_FR siwis medium :
+# 3. Voix Piper fr_FR siwis medium — chargée par src/tts.rs (PIPER_MODEL) :
 wget -O models/piper/fr_FR-siwis-medium.onnx \
   https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx
 wget -O models/piper/fr_FR-siwis-medium.onnx.json \
   https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json
-
-# 5. Kokoro : pas d'URL publique stable — copier depuis la machine macOS d'origine :
-#    scp mac:proto-fyrox/kokoro/models/model_quantized.onnx kokoro/models/
-#    scp mac:proto-fyrox/kokoro/voices/ff_siwis.bin kokoro/voices/
-#    (Le TTS actif est Piper ; Kokoro manquant ne bloque pas le lancement.)
 ```
+
+Vérifier :
+
+```bash
+ls -lh models/ggml-tiny.bin models/piper/
+# ggml-tiny.bin ~77 Mo, fr_FR-siwis-medium.onnx ~63 Mo + .onnx.json ~5 Ko
+```
+
+> Obsolètes (non référencés par le code depuis le passage à Piper, supprimables
+> pour ~140 Mo) : `kokoro/` (ancien TTS), `models/piper/piper/` + `models/piper.tgz`
+> (ancien binaire natif — le code appelle `python3 -m piper`), `models/ggml-silero-v6.2.0.bin`
+> (VAD non chargé). Détail dans README § Modèles.
 
 Test Piper de bout en bout (dans toolbox, venv activé) :
 

@@ -10,7 +10,7 @@ Prototype Rust.
 - `nokhwa` — capture webcam
 - `mediapipe` — `face_landmarker.task` → yaw/pitch tête + blendshapes
 - `whisper-cpp` (`ggml-tiny.bin`) — speech-to-text
-- `tts` : Piper (`fr_FR-siwis-medium.onnx`) + Kokoro (`model_quantized.onnx`)
+- `tts` : Piper (`fr_FR-siwis-medium.onnx`) via `python3 -m piper`
 - `rodio` — lecture audio
 
 ## Lancer
@@ -23,18 +23,27 @@ Contrôles : molette = zoom, clavier = orbite caméra, `demo` = mode démo sans 
 
 > 🐧 **Fedora ostree ?** Suivre [docs/fedora-ostree.md](docs/fedora-ostree.md) : toolbox, webcam/micro, Piper, modèles, dépannage.
 
-## Modèles (non versionnés, ~270 MB)
+## Modèles (non versionnés, ~140 MB)
 
-Télécharger / placer manuellement :
+`face_landmarker.task` (3,6 Mo) est dans git. Tout le reste va dans `/models`
+(ignoré par git) — fichiers attendus par le code :
 
-| Fichier | Destination |
+| Fichier | Taille | Utilisé par | Se procurer |
+|---|---|---|---|
+| `models/ggml-tiny.bin` | ~77 Mo | `voice.rs` (whisper STT) | `wget -O models/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin` |
+| `models/piper/fr_FR-siwis-medium.onnx` | ~63 Mo | `tts.rs` (`PIPER_MODEL`) | `wget -O models/piper/fr_FR-siwis-medium.onnx https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx` |
+| `models/piper/fr_FR-siwis-medium.onnx.json` | ~5 Ko | `piper` (config voix, même nom que `.onnx` obligatoire) | `wget -O models/piper/fr_FR-siwis-medium.onnx.json https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json` |
+
+Optionnel / non référencé par le code actuel :
+
+| Fichier | Statut |
 |---|---|
-| `face_landmarker.task` (MediaPipe) | racine (déjà inclus, 3,6 Mo) |
-| `ggml-tiny.bin` (whisper) | `models/` |
-| `ggml-silero-v6.2.0.bin` (VAD) | `models/` |
-| `fr_FR-siwis-medium.onnx{,.json}` + binaire `piper` | `models/piper/` |
-| `model_quantized.onnx` (kokoro) | `kokoro/models/` |
-| `ff_siwis.bin` (voix kokoro) | `kokoro/voices/` |
+| `models/ggml-silero-v6.2.0.bin` | VAD, non chargé par le code — inutile pour l'instant |
+| `models/piper/piper/` + `models/piper.tgz` | ancien binaire Piper natif — obsolète, le code appelle `python3 -m piper` |
+| `kokoro/` (`model_quantized.onnx`, `ff_siwis.bin`) | ancien TTS Kokoro — obsolète depuis le passage à Piper, supprimable |
+
+Sans `ggml-tiny.bin` : `[voice] chargement whisper` en erreur, pas de commandes vocales.
+Sans le `.onnx` Piper : `[tts] synthèse piper` en erreur, Camille muette.
 
 ## Structure
 
@@ -45,7 +54,7 @@ src/
   expressions.rs — blendshapes → morphs visage
   jointtest.rs   — calibration articulations
   mic.rs / voice.rs — capture + VAD + whisper
-  tts.rs         — Piper / Kokoro → rodio
+  tts.rs         — Piper → rodio
 assets/          — modèle Aki (.glb/.fbx) + sprites
 data/            — resources.registry Fyrox
 ```

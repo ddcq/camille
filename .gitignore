@@ -9,7 +9,7 @@
 *.swp
 *.swo
 
-# Modèles lourds — à télécharger séparément (≈270MB)
+# Modèles lourds — à télécharger séparément (~140MB utiles)
 # Voir README section Modèles.
 /models/
 ggml-*.bin
