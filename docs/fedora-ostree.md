@@ -135,11 +135,6 @@ ls -lh models/ggml-tiny.bin models/piper/
 # ggml-tiny.bin ~77 Mo, fr_FR-siwis-medium.onnx ~63 Mo + .onnx.json ~5 Ko
 ```
 
-> Obsolètes (non référencés par le code depuis le passage à Piper, supprimables
-> pour ~140 Mo) : `kokoro/` (ancien TTS), `models/piper/piper/` + `models/piper.tgz`
-> (ancien binaire natif — le code appelle `python3 -m piper`), `models/ggml-silero-v6.2.0.bin`
-> (VAD non chargé). Détail dans README § Modèles.
-
 Test voix de bout en bout, sans lancer tout Camille (dans toolbox) :
 
 ```bash

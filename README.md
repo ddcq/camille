@@ -34,14 +34,6 @@ Contrôles : molette = zoom, clavier = orbite caméra, `demo` = mode démo sans 
 | `models/piper/fr_FR-siwis-medium.onnx` | ~63 Mo | `tts.rs` (`PIPER_MODEL`) | `wget -O models/piper/fr_FR-siwis-medium.onnx https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx` |
 | `models/piper/fr_FR-siwis-medium.onnx.json` | ~5 Ko | `piper` (config voix, même nom que `.onnx` obligatoire) | `wget -O models/piper/fr_FR-siwis-medium.onnx.json https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json` |
 
-Optionnel / non référencé par le code actuel :
-
-| Fichier | Statut |
-|---|---|
-| `models/ggml-silero-v6.2.0.bin` | VAD, non chargé par le code — inutile pour l'instant |
-| `models/piper/piper/` + `models/piper.tgz` | ancien binaire Piper natif — obsolète, le code appelle `python3 -m piper` |
-| `kokoro/` (`model_quantized.onnx`, `ff_siwis.bin`) | ancien TTS Kokoro — obsolète depuis le passage à Piper, supprimable |
-
 Sans `ggml-tiny.bin` : `[voice] chargement whisper` en erreur, pas de commandes vocales.
 Sans le `.onnx` Piper : `[tts] chargement voix piper` en erreur, Camille muette.
 Test voix isolé : `cargo run --example tts_test -- "Bonjour Camille"`.
