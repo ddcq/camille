@@ -10,6 +10,7 @@ mediapipe = "0.1"
 anyhow = "1"
 rodio = { version = "0.22", features = ["playback"] }
 whisper-cpp-plus = "0.1"
+piper-rs = "0.2"
 
 [profile.dev]
 opt-level = 1

@@ -10,7 +10,7 @@ avec l'hôte). Aucun `rpm-ostree install`, aucun reboot.
 - Fenêtre 3D **Fyrox 1.0** : avatar Aki (`assets/aki.glb`), caméra orbitale.
 - Thread webcam (**nokhwa** V4L2) → **MediaPipe FaceLandmarker** (`face_landmarker.task`) → yaw/pitch tête (`src/face_track.rs`).
 - Thread micro (**cpal** via `mic.rs`, 16 kHz mono, ring buffer 8 s) → **whisper-cpp** (`models/ggml-tiny.bin`, `src/voice.rs`) → wake word `camille` → commande → réponse.
-- TTS **Piper** via `python3 -m piper` (`models/piper/fr_FR-siwis-medium.onnx`) → lecture **rodio** (`src/tts.rs`).
+- TTS **Piper** in-process (`piper-rs`: espeak-ng + onnxruntime, `models/piper/fr_FR-siwis-medium.onnx`) → lecture **rodio** (`src/tts.rs`). Zéro dépendance python.
 
 Logs au démarrage : `[face.track]`, `[voice]`, `[tts]`.
 
@@ -57,18 +57,16 @@ sudo dnf install -y \
   mesa-libGL-devel mesa-libEGL-devel \
   alsa-lib-devel alsa-utils systemd-devel \
   v4l-utils \
-  python3 python3-pip \
   pipewire-utils
 ```
 
 | Paquet | Pourquoi |
 |---|---|
-| `gcc-c++`, `cmake` | `whisper-cpp-plus` compile whisper.cpp au premier `cargo build` |
+| `gcc-c++`, `cmake` | `whisper-cpp-plus` (whisper.cpp) + `espeak-rs-sys` (espeak-ng) compilés au premier `cargo build` |
 | `libxcb-devel`, `libxkbcommon-devel`, `libXi-devel`, `mesa-*-devel` | fenêtre + OpenGL Fyrox/winit |
 | `alsa-lib-devel`, `systemd-devel` | `cpal`/`rodio` : micro + HP |
 | `v4l-utils` | `v4l2-ctl` (test webcam depuis toolbox) |
-| `alsa-utils` | `aplay` (test Piper) |
-| `python3-pip` | module `piper-tts` en venv (§ 5) |
+| `alsa-utils` | `aplay` (test audio) |
 
 Vérifier périphériques **depuis toolbox** (partage `/dev` + PipeWire) :
 
@@ -90,18 +88,11 @@ rustc --version   # viser stable ≥ 1.80
 > rustup vit dans `$HOME`, donc partagé/persistant. Ne pas utiliser le paquet
 > `rust` du dépôt (souvent en retard et source de conflits `cargo`).
 
-## 5. Piper TTS (venv dans toolbox)
+## 5. Piper TTS — rien à installer
 
-`src/tts.rs` lance `python3 -m piper --model models/piper/fr_FR-siwis-medium.onnx --output_raw`.
-Créer un venv et **toujours lancer Camille avec ce venv activé** :
-
-```bash
-# --- dans toolbox ---
-python3 -m venv ~/.venvs/camille
-~/.venvs/camille/bin/pip install piper-tts
-source ~/.venvs/camille/bin/activate
-python3 -m piper --help   # doit afficher l'aide
-```
+Synthèse 100 % Rust via la crate `piper-rs` (espeak-ng + onnxruntime compilés
+avec le projet au premier `cargo build`). Pas de venv, pas de module python,
+pas de binaire externe. Seuls les fichiers voix comptent (voir § 6) :
 
 ## 6. Cloner + modèles
 
@@ -149,13 +140,12 @@ ls -lh models/ggml-tiny.bin models/piper/
 > (ancien binaire natif — le code appelle `python3 -m piper`), `models/ggml-silero-v6.2.0.bin`
 > (VAD non chargé). Détail dans README § Modèles.
 
-Test Piper de bout en bout (dans toolbox, venv activé) :
+Test voix de bout en bout, sans lancer tout Camille (dans toolbox) :
 
 ```bash
-echo "Bonjour Camille" | python3 -m piper \
-  --model models/piper/fr_FR-siwis-medium.onnx --output_raw \
-  | aplay -r 22050 -f S16_LE -t raw -c 1
-# doit parler. Sinon : modèle absent, venv oublié, ou mauvaise sortie (pavucontrol).
+cargo run --example tts_test -- "Bonjour Camille"
+# attendus : «N échantillons @ 22050 Hz», puis voix audible.
+# Sinon : modèle absent (§ 6), ou mauvaise sortie (pavucontrol).
 ```
 
 ## 7. Compiler + lancer (dans toolbox)
@@ -163,11 +153,11 @@ echo "Bonjour Camille" | python3 -m piper \
 La fenêtre Fyrox s'affiche sur l'hôte (toolbox partage Wayland/X11).
 
 ```bash
-# --- dans toolbox, depuis ~/projects/camille, venv activé ---
+# --- dans toolbox, depuis ~/projects/camille ---
 cargo run --release
 ```
 
-- Premier build : 5–15 min (whisper.cpp + Fyrox). Suivants incrémentaux.
+- Premier build : 10–25 min (whisper.cpp + espeak-ng + onnxruntime + Fyrox ; onnxruntime prébuild téléchargé, réseau requis). Suivants incrémentaux.
 - Itérations 3D rapides : `cargo run` (profil dev, `opt-level = 1` dans `Cargo.toml`).
 - Qualité avant commit :
 
@@ -194,8 +184,7 @@ Sans webcam/micro (dev 3D pur) : `[face.track] ERREUR: ouverture caméra` ou
 ### One-liner depuis l'hôte (sans `toolbox enter`)
 
 ```bash
-toolbox run -c camille bash -lc \
-  'source ~/.venvs/camille/bin/activate && cd ~/projects/camille && cargo run --release'
+toolbox run -c camille bash -lc 'cd ~/projects/camille && cargo run --release'
 ```
 
 ## 8. Continuer à programmer — où toucher
@@ -207,7 +196,7 @@ src/expressions.rs Morphs visage (Joy/Angry/Sorrow/Surprised/Fun) + visèmes.
 src/jointtest.rs   Calibration articulations.
 src/mic.rs         Capture cpal 16 kHz, ring buffer. API: start/window/pos/since.
 src/voice.rs       Wake word + whisper + brain(). Constantes WIN_SECS/TICK_MS.
-src/tts.rs         File TTS → synth_piper() → rodio. PIPER_MODEL/PIPER_RATE.
+src/tts.rs         File TTS → piper-rs in-process → rodio. Constantes PIPER_MODEL/PIPER_CONFIG.
 ```
 
 Workflow ostree : **éditer sur l'hôte** (VS Code flatpak, GNOME Text — fichiers
@@ -251,19 +240,19 @@ cargo run --release  # test voix temps réel (whisper trop lent en debug)
 | `ouverture caméra` / `open_stream` | webcam absente ou prise (navigateur), groupe `video` | § 2 : `ls /dev/video*`, Cheese, `usermod -aG video`, fermer l'autre app |
 | Fenêtre ne s'affiche pas (Wayland) | backend winit | `WINIT_UNIX_BACKEND=x11 toolbox run -c camille ...` (XWayland), ou session GNOME Xorg |
 | `aucun micro par défaut` | entrée désactivée | Paramètres → Son, ou `pavucontrol` (flatpak) → Entrée |
-| `spawn piper` / `No module named piper` | venv non activé | `source ~/.venvs/camille/bin/activate` avant `cargo run` |
-| `chargement whisper` | `models/ggml-tiny.bin` absent | re-`wget` § 6, `ls -lh models/` (~75 Mo) |
-| `cmake not found` / erreur C++ | paquets toolbox oubliés | § 3 puis `cargo clean -p whisper-cpp-plus` |
+| `[tts] chargement voix piper` | `.onnx` / `.onnx.json` absents ou corrompus | re-`wget` § 6, `ls -lh models/piper/` (~63 Mo + ~5 Ko) |
+| `chargement whisper` | `models/ggml-tiny.bin` absent | re-`wget` § 6, `ls -lh models/` (~77 Mo) |
+| `cmake not found` / erreur C++ | paquets toolbox oubliés | § 3 puis `cargo clean -p whisper-cpp-plus -p espeak-rs-sys` |
 | Whisper très lent | build debug | `--release` obligatoire pour tests voix |
 | `face_landmarker.task` introuvable | mauvais cwd | lancer depuis `~/projects/camille` (chemin relatif dans `face_track.rs`) |
 | Son saccadé | CPU (debug) ou mauvaise sortie | `--release`, `pavucontrol` → Lecture |
 | Rendu 3D lent / `LIBGL` software | pas d'accélération dans toolbox | `glxinfo -B` (dans toolbox) doit citer le GPU ; sinon mettre à jour pilotes hôte via update système, pas de layering Mesa |
 
-Recréer toolbox en cas de casse (code et venv dans `$HOME`, donc intacts) :
+Recréer toolbox en cas de casse (code et rustup dans `$HOME`, donc intacts) :
 
 ```bash
 toolbox rm camille && toolbox create camille
-# puis refaire § 3 (dnf) — venv/rustup/projets conservés
+# puis refaire § 3 (dnf) — rustup/projets conservés
 ```
 
 ## 10. Checklist première machine
@@ -272,6 +261,6 @@ toolbox rm camille && toolbox create camille
 - [ ] `toolbox create camille` → OK, § 3 installé
 - [ ] `v4l2-ctl --list-devices` (toolbox) → webcam
 - [ ] `pactl list short sources/sinks` (toolbox) → micro + HP
-- [ ] `python3 -m piper --help` (venv) → OK, test `aplay` → voix audible
+- [ ] `cargo run --example tts_test -- "Bonjour Camille"` (toolbox) → échantillons + voix audible
 - [ ] `cargo run --release` (toolbox) → fenêtre Aki + `[face.track] visage détecté`
 - [ ] `Camille, bonjour` → `[voice] wake détecté` + réponse parlée
