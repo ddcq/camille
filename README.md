@@ -10,7 +10,7 @@ Prototype Rust.
 - `nokhwa` — capture webcam
 - `mediapipe` — `face_landmarker.task` → yaw/pitch tête + blendshapes
 - `whisper-cpp` (`ggml-tiny.bin`) — speech-to-text
-- `tts` : Piper (`fr_FR-siwis-medium.onnx`) via `python3 -m piper`
+- `tts` : Piper in-process (`piper-rs`, mêmes `.onnx`) — aucune dépendance python
 - `rodio` — lecture audio
 
 ## Lancer
@@ -43,7 +43,8 @@ Optionnel / non référencé par le code actuel :
 | `kokoro/` (`model_quantized.onnx`, `ff_siwis.bin`) | ancien TTS Kokoro — obsolète depuis le passage à Piper, supprimable |
 
 Sans `ggml-tiny.bin` : `[voice] chargement whisper` en erreur, pas de commandes vocales.
-Sans le `.onnx` Piper : `[tts] synthèse piper` en erreur, Camille muette.
+Sans le `.onnx` Piper : `[tts] chargement voix piper` en erreur, Camille muette.
+Test voix isolé : `cargo run --example tts_test -- "Bonjour Camille"`.
 
 ## Structure
 
